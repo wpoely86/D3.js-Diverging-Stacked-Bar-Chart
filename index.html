@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test D3.js</title>
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+//  display: none;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://raw.githubusercontent.com/eligrey/FileSaver.js/master/FileSaver.min.js"></script>
+<script type="text/javascript" src="http://canvg.googlecode.com/svn/trunk/rgbcolor.js"></script> 
+<script type="text/javascript" src="http://canvg.googlecode.com/svn/trunk/StackBlur.js"></script>
+<script type="text/javascript" src="http://canvg.googlecode.com/svn/trunk/canvg.js"></script>
+</head>
+<body>
+
+
+<h1>Grafiek test</h1>
+<p><a href="#" onclick="javascript:opslaanSVG()">Save SVG</a></p>
+<p><a href="#" onclick="javascript:opslaanPNG()">Save PNG</a></p>
+<div id="figuur"></div>
+<canvas id="mycanvas" width="1000px" height="600px"></canvas>
+
+<script>
+
+function opslaanSVG()
+{
+//    var element = document.getElementById('figuur');
+    var element = document.getElementsByTagName('svg')[0];
+    var svgAsString = new XMLSerializer().serializeToString(element);
+    var svgBlob = new Blob([svgAsString], {type: "image/svg+xml;charset=utf-8"});
+    saveAs(svgBlob, "figuur.svg");
+}
+
+function opslaanPNG()
+{
+    var canvas = document.getElementById("mycanvas"), ctx = canvas.getContext("2d");
+    canvas.toBlob(function(blob) {
+    saveAs(blob, "figuur.png");
+    });
+}
+
+var margin = {top: 50, right: 20, bottom: 20, left: 75},
+    width = 1200 - margin.left - margin.right,
+    height = 1000 - margin.top - margin.bottom;
+
+var y = d3.scale.ordinal()
+    .rangeRoundBands([0, height], .3);
+
+var x = d3.scale.linear()
+    .rangeRound([0, width]);
+
+    // colors for bars
+var color = d3.scale.ordinal()
+    .range(["#c7001e", "#f6a580", "#e5e5e5", "#92c6db", "#086fad"]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("top");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+
+var svg = d3.select("#figuur").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Vak,Vraag,1,2,3,4,5,,NVT,NA,N,Mean,Std. Deviation,Std. Error of Mean
+// MA_ugent,V1,24,294,594,1927,376,,0,0,3215,3.727,0.813,0.014
+
+  color.domain(["Helemaal niet akkoord","Niet akkoord","Neutraal","Akkoord","Volledig akkoord"]);
+
+  d3.csv("vraag1.csv", function(error, data) {
+
+  data.forEach(function(d) {
+    // calc percentages
+    d["Helemaal niet akkoord"] = +d[1]*100/d.N;
+    d["Niet akkoord"] = +d[2]*100/d.N;
+    d["Neutraal"] = +d[3]*100/d.N;
+    d["Akkoord"] = +d[4]*100/d.N;
+    d["Volledig akkoord"] = +d[5]*100/d.N;
+    var x0 = -1*(d["Neutraal"]/2+d["Niet akkoord"]+d["Helemaal niet akkoord"]);
+
+    d.boxes = color.domain().map(function(name) { return {name: name, x0: x0, x1: x0 += +d[name]}; });
+  });
+
+  console.log(data);
+
+  var min_val = d3.min(data, function(d) {
+          return d.boxes["0"].x0;
+          });
+
+  var max_val = d3.max(data, function(d) {
+          return d.boxes["4"].x1;
+          });
+
+  console.log("min: " + min_val);
+  console.log("max: " + max_val);
+  x.domain([min_val, max_val]).nice();
+  y.domain(data.map(function(d) { return d.Vak; }));
+
+  svg.append("g")
+      .attr("class", "x axis")
+//      .style("fill", "none")
+//      .style("stroke", "#000")
+//      .style("shape-rendering", "crispEdges")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class", "y axis")
+//      .style("fill", "none")
+//      .style("stroke", "#000")
+//      .style("shape-rendering", "crispEdges")
+      .call(yAxis)
+//    .append("text")
+//      .attr("transform", "rotate(-90)")
+//      .attr("y", 6)
+//      .attr("dy", ".71em")
+//      .style("text-anchor", "end")
+//      .text("Population");
+
+  var vakken = svg.selectAll(".vak")
+      .data(data)
+    .enter().append("g")
+      .attr("class", "g")
+      .attr("transform", function(d) { return "translate(0," + y(d.Vak) + ")"; });
+
+  vakken.selectAll("rect")
+      .data(function(d) { return d.boxes; })
+    .enter().append("rect")
+      .attr("height", y.rangeBand())
+      .attr("x", function(d) { return x(d.x0); })
+      .attr("width", function(d) { return x(d.x1) - x(d.x0); })
+      .style("fill", function(d) { return color(d.name); });
+
+  var startp = svg.append("g").attr("class", "legendbox").attr("id", "mylegendbox");
+  var legend = startp.selectAll(".legend")
+      .data(color.domain().slice().reverse())
+    .enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) { return "translate(" + i * 150 + ",-45)"; });
+
+  legend.append("rect")
+      .attr("x", 0)
+      .attr("width", 18)
+      .attr("height", 18)
+      .style("fill", color);
+
+  legend.append("text")
+      .attr("x", 22)
+      .attr("y", 9)
+      .attr("dy", ".35em")
+      .style("text-anchor", "begin")
+      .style("font" ,"10px sans-serif")
+      .text(function(d) { return d; });
+
+  d3.selectAll(".axis path")
+      .style("fill", "none")
+      .style("stroke", "#000")
+      .style("shape-rendering", "crispEdges")
+
+  d3.selectAll(".axis line")
+      .style("fill", "none")
+      .style("stroke", "#000")
+      .style("shape-rendering", "crispEdges")
+
+      var el   = document.getElementById("mylegendbox"); 
+    var rect = el.getBoundingClientRect();
+    console.log(rect);
+    var movesize = +width/2 - rect.width/2;
+
+  d3.selectAll(".legendbox").attr("transform", "translate(" + movesize  + ",0)");
+
+  //load a svg snippet in the canvas with id = 'drawingArea'
+  var element = document.getElementsByTagName('svg')[0];
+  var svgAsString = new XMLSerializer().serializeToString(element);
+  canvg(document.getElementById('mycanvas'), svgAsString );
+});
+</script>
+
+</body>
+</html>
