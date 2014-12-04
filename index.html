@@ -99,8 +99,8 @@ var svg = d3.select("#figuur").append("svg")
     d["Akkoord"] = +d[4]*100/d.N;
     d["Volledig akkoord"] = +d[5]*100/d.N;
     var x0 = -1*(d["Neutraal"]/2+d["Niet akkoord"]+d["Helemaal niet akkoord"]);
-
-    d.boxes = color.domain().map(function(name) { return {name: name, x0: x0, x1: x0 += +d[name]}; });
+    var idx = 0;
+    d.boxes = color.domain().map(function(name) { return {name: name, x0: x0, x1: x0 += +d[name], N: +d.N, n: +d[idx += 1]}; });
   });
 
   console.log(data);
@@ -113,23 +113,17 @@ var svg = d3.select("#figuur").append("svg")
           return d.boxes["4"].x1;
           });
 
-  console.log("min: " + min_val);
-  console.log("max: " + max_val);
+//  console.log("min: " + min_val);
+//  console.log("max: " + max_val);
   x.domain([min_val, max_val]).nice();
   y.domain(data.map(function(d) { return d.Vak; }));
 
   svg.append("g")
       .attr("class", "x axis")
-//      .style("fill", "none")
-//      .style("stroke", "#000")
-//      .style("shape-rendering", "crispEdges")
       .call(xAxis);
 
   svg.append("g")
       .attr("class", "y axis")
-//      .style("fill", "none")
-//      .style("stroke", "#000")
-//      .style("shape-rendering", "crispEdges")
       .call(yAxis)
 //    .append("text")
 //      .attr("transform", "rotate(-90)")
@@ -141,16 +135,54 @@ var svg = d3.select("#figuur").append("svg")
   var vakken = svg.selectAll(".vak")
       .data(data)
     .enter().append("g")
-      .attr("class", "g")
+      .attr("class", "bar")
       .attr("transform", function(d) { return "translate(0," + y(d.Vak) + ")"; });
 
-  vakken.selectAll("rect")
+/*
+  
+  vakken.append("rect")
+      .attr("height", y.rangeBand())
+      .attr("x", "0")
+      .attr("width", width)
+      .attr("fill-opacity", "0.1")
+//      .style("fill", function(d,index) { return index%2==0 ? "blue" : "yellow"; });
+ */ 
+
+  var bars = vakken.selectAll("rect")
       .data(function(d) { return d.boxes; })
-    .enter().append("rect")
+    .enter().append("g").attr("class", "subbar");
+
+  bars.append("rect")
       .attr("height", y.rangeBand())
       .attr("x", function(d) { return x(d.x0); })
       .attr("width", function(d) { return x(d.x1) - x(d.x0); })
       .style("fill", function(d) { return color(d.name); });
+
+  bars.append("text")
+      .attr("x", function(d) { return x(d.x0); })
+      .attr("y", y.rangeBand()/2)
+      .attr("dy", "0.5em")
+      .attr("dx", "0.5em")
+      .style("font" ,"10px sans-serif")
+      .style("text-anchor", "begin")
+      .text(function(d) { return d.n !== 0 && (d.x1-d.x0)>5 ? d.n : "" });
+
+  vakken.insert("rect",":first-child")
+      .attr("height", y.rangeBand())
+      .attr("x", "0")
+      .attr("width", width)
+      .attr("fill-opacity", "0.5")
+      .style("fill", function(d,index) { return index%2==0 ? "#E5E5E5" : "#F5F5F5"; })
+      .attr("class", function(d,index) { return index%2==0 ? "even" : "uneven"; });
+
+
+
+  svg.append("g")
+      .attr("class", "y axis")
+  .append("line")
+      .attr("x1", x(0))
+      .attr("x2", x(0))
+      .attr("y2", height);
 
   var startp = svg.append("g").attr("class", "legendbox").attr("id", "mylegendbox");
   var legend = startp.selectAll(".legend")
@@ -183,10 +215,7 @@ var svg = d3.select("#figuur").append("svg")
       .style("stroke", "#000")
       .style("shape-rendering", "crispEdges")
 
-      var el   = document.getElementById("mylegendbox"); 
-    var rect = el.getBoundingClientRect();
-    console.log(rect);
-    var movesize = +width/2 - rect.width/2;
+  var movesize = width/2 - startp.node().getBBox().width/2;
 
   d3.selectAll(".legendbox").attr("transform", "translate(" + movesize  + ",0)");
 
