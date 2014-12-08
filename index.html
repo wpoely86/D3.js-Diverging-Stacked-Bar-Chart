@@ -16,10 +16,6 @@ body {
   shape-rendering: crispEdges;
 }
 
-.x.axis path {
-//  display: none;
-}
-
 </style>
 <body>
 <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>
@@ -35,13 +31,14 @@ body {
 <p><a href="#" onclick="javascript:opslaanSVG()">Save SVG</a></p>
 <p><a href="#" onclick="javascript:opslaanPNG()">Save PNG</a></p>
 <div id="figuur"></div>
+<div>
 <canvas id="mycanvas" width="1000px" height="600px"></canvas>
+</div>
 
 <script>
 
 function opslaanSVG()
 {
-//    var element = document.getElementById('figuur');
     var element = document.getElementsByTagName('svg')[0];
     var svgAsString = new XMLSerializer().serializeToString(element);
     var svgBlob = new Blob([svgAsString], {type: "image/svg+xml;charset=utf-8"});
@@ -68,7 +65,7 @@ var x = d3.scale.linear()
 
     // colors for bars
 var color = d3.scale.ordinal()
-    .range(["#c7001e", "#f6a580", "#e5e5e5", "#92c6db", "#086fad"]);
+    .range(["#c7001e", "#f6a580", "#cccccc", "#92c6db", "#086fad"]);
 
 var xAxis = d3.svg.axis()
     .scale(x)
@@ -103,8 +100,6 @@ var svg = d3.select("#figuur").append("svg")
     d.boxes = color.domain().map(function(name) { return {name: name, x0: x0, x1: x0 += +d[name], N: +d.N, n: +d[idx += 1]}; });
   });
 
-  console.log(data);
-
   var min_val = d3.min(data, function(d) {
           return d.boxes["0"].x0;
           });
@@ -113,8 +108,6 @@ var svg = d3.select("#figuur").append("svg")
           return d.boxes["4"].x1;
           });
 
-//  console.log("min: " + min_val);
-//  console.log("max: " + max_val);
   x.domain([min_val, max_val]).nice();
   y.domain(data.map(function(d) { return d.Vak; }));
 
@@ -125,28 +118,12 @@ var svg = d3.select("#figuur").append("svg")
   svg.append("g")
       .attr("class", "y axis")
       .call(yAxis)
-//    .append("text")
-//      .attr("transform", "rotate(-90)")
-//      .attr("y", 6)
-//      .attr("dy", ".71em")
-//      .style("text-anchor", "end")
-//      .text("Population");
 
   var vakken = svg.selectAll(".vak")
       .data(data)
     .enter().append("g")
       .attr("class", "bar")
       .attr("transform", function(d) { return "translate(0," + y(d.Vak) + ")"; });
-
-/*
-  
-  vakken.append("rect")
-      .attr("height", y.rangeBand())
-      .attr("x", "0")
-      .attr("width", width)
-      .attr("fill-opacity", "0.1")
-//      .style("fill", function(d,index) { return index%2==0 ? "blue" : "yellow"; });
- */ 
 
   var bars = vakken.selectAll("rect")
       .data(function(d) { return d.boxes; })
@@ -165,17 +142,15 @@ var svg = d3.select("#figuur").append("svg")
       .attr("dx", "0.5em")
       .style("font" ,"10px sans-serif")
       .style("text-anchor", "begin")
-      .text(function(d) { return d.n !== 0 && (d.x1-d.x0)>5 ? d.n : "" });
+      .text(function(d) { return d.n !== 0 && (d.x1-d.x0)>3 ? d.n : "" });
 
   vakken.insert("rect",":first-child")
       .attr("height", y.rangeBand())
       .attr("x", "0")
       .attr("width", width)
       .attr("fill-opacity", "0.5")
-      .style("fill", function(d,index) { return index%2==0 ? "#E5E5E5" : "#F5F5F5"; })
+      .style("fill", "#F5F5F5")
       .attr("class", function(d,index) { return index%2==0 ? "even" : "uneven"; });
-
-
 
   svg.append("g")
       .attr("class", "y axis")
@@ -186,7 +161,7 @@ var svg = d3.select("#figuur").append("svg")
 
   var startp = svg.append("g").attr("class", "legendbox").attr("id", "mylegendbox");
   var legend = startp.selectAll(".legend")
-      .data(color.domain().slice().reverse())
+      .data(color.domain().slice())
     .enter().append("g")
       .attr("class", "legend")
       .attr("transform", function(d, i) { return "translate(" + i * 150 + ",-45)"; });
@@ -216,10 +191,9 @@ var svg = d3.select("#figuur").append("svg")
       .style("shape-rendering", "crispEdges")
 
   var movesize = width/2 - startp.node().getBBox().width/2;
-
   d3.selectAll(".legendbox").attr("transform", "translate(" + movesize  + ",0)");
 
-  //load a svg snippet in the canvas with id = 'drawingArea'
+  // print the svg in a canvas
   var element = document.getElementsByTagName('svg')[0];
   var svgAsString = new XMLSerializer().serializeToString(element);
   canvg(document.getElementById('mycanvas'), svgAsString );
