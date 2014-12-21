@@ -6,4 +6,4 @@ plot a Likert scale but according to [Robbins & Heiberger](https://www.amstat.or
 
 I've used [D3.js](http://d3js.org). There is also an R package by Robbins & Heiberger.
 
-The result of can be seen [here](https://wpoely86.github.io/D3.js-Diverging-Stacked-Bar-Chart/).
+The result of can be seen [here](https://wpoely86.github.io/D3.js-Diverging-Stacked-Bar-Chart/). I also render the svg to a canvas element using [canvg](https://github.com/gabelerner/canvg). [FileSaver.js](https://github.com/eligrey/FileSaver.js/) is used to have a 'Save as' function.
